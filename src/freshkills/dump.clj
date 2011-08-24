@@ -82,6 +82,8 @@
 </form>
 <h2>dumped</h2>
 <div>%s</div>
+<p>&nbsp;<p>
+<div id=\"foot\"><a href=\"https://github.com/jli/freshkills\">src.</a> <small>&copy; 2011 <a href=\"http://circularly.org/\">jli</a> <a href=\"http://sam.zoy.org/wtfpl/COPYING\">WTFPL</a></small></div>
 </body></html>" (embiggen "freshkills") (apply str db-html))))
 
 (defn handler [req]
