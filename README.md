@@ -8,7 +8,6 @@ FIXME: write
 
 ## Todo
 
-* Highlight links.
 * Support for files.
 * Sane backend.
 * Sane html.

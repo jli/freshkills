@@ -15,42 +15,74 @@
     (.substring s (count pre))
     s))
 
-(def page-title (embiggen "FRESHKILLS"))
+;;; madness #"(?i)(https?://[\\$-_@\\.&\\+!\\*\"'\\(\\),%:;#a-zA-Z0-9/]+)"
+(def link-rex #"(?i)([a-z]+://\S+)")
 
-(defonce db (atom {}))
+(defn linkify [s]
+  (-> (.matcher link-rex s)
+      (.replaceAll "<a href=\"$1\">$1</a>")))
 
-(def date-fmt (java.text.SimpleDateFormat.))
-(defn date-str [d] (.format date-fmt d))
+
+(defonce db (atom ()))
+
+(def date-fmt (java.text.SimpleDateFormat. "yyyy-MM-dd"))
+(def time-fmt (java.text.SimpleDateFormat. "HH:mm:ss"))
+(defn time-str [d] (.format time-fmt d))
+(defn date-str [d] (format "<b>%s</b> %s"
+                           (.format date-fmt d)
+                           (time-str d)))
+
 
 (defn req->txt [req]
   (-> req
       :body
       slurp
       (drop-prefix "txt=")
-      url-decode
-      ))
+      url-decode))
+
 
 ;; make url a link
 (defn format-dump [s]
-  (StringEscapeUtils/escapeHtml s))
+  (linkify (StringEscapeUtils/escapeHtml s)))
+
+(defn date-day [date]
+  (let [cal (doto (java.util.Calendar/getInstance)
+              (.setTime date))
+        field (fn [field] (.get cal field))]
+    (.get cal java.util.Calendar/DAY_OF_YEAR)))
+
+;;; only shows day once in a sequence
+(defn db-format-date [db]
+  (let [prev-day (atom false)]
+    (map (fn [[date val]]
+           (let [day (date-day date)]
+             (if (= day @prev-day)
+               [(time-str date) val]
+               (do (swap! prev-day (constantly day))
+                   [(date-str date) val]))))
+         db)))
+
+(defn db-html [db]
+  (map (fn [[date val]]
+         (format "<div>%s - %s</div>"
+                 date (format-dump val)))
+       db))
 
 (defn main-page [req post?]
   (when post?
-    (swap! db assoc (now) (req->txt req)))
-  (let [db-fmt (map (fn [[k v]]
-                      (format "<div><b>%s</b> - %s</div>"
-                              (date-str k)
-                              (format-dump v)))
-                    @db)]
+    (swap! db conj [(now) (req->txt req)]))
+  (let [db-html (-> @db
+                    db-format-date
+                    db-html)]
     (format "<html><head><title>dump</title></head><body>
 <img style=\"float: right;\" height=\"350\" src=\"horseshoe.png\"><h1>%s</h1>
 <form action=\"/post\" method=\"post\">
 <input type=\"textarea\" name=\"txt\" style=\"width: 50%%; height: 10%%;\"></input><br>
 <input type=\"submit\" id=\"submit\" value=\"YEAH\"></input>
 </form>
-<h1>PUSHES</h1>
+<h2>dumped</h2>
 <div>%s</div>
-</body></html>" page-title (apply str db-fmt))))
+</body></html>" (embiggen "freshkills") (apply str db-html))))
 
 (defn handler [req]
   ;; guh. :query-string always in req, but can be nil.
