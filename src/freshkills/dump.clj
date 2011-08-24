@@ -6,10 +6,16 @@
   (:import [org.apache.commons.lang StringEscapeUtils]))
 
 (defn now [] (java.util.Date.))
+
+(def embiggen
+  (comp (partial apply str) (partial interpose " ") #(.toUpperCase %)))
+
 (defn drop-prefix [s pre]
   (if (.startsWith s pre)
     (.substring s (count pre))
     s))
+
+(def page-title (embiggen "FRESHKILLS"))
 
 (defonce db (atom {}))
 
@@ -37,14 +43,14 @@
                               (format-dump v)))
                     @db)]
     (format "<html><head><title>dump</title></head><body>
-<h1>PUSH IT</h1>
+<h1>%s</h1>
 <form action=\"/post\" method=\"post\">
 <input type=\"textarea\" name=\"txt\" style=\"width: 50%%; height: 10%%;\"></input><br>
 <input type=\"submit\" id=\"submit\" value=\"YEAH\"></input>
 </form>
 <h1>PUSHES</h1>
 <div>%s</div>
-</body></html>" (apply str db-fmt))))
+</body></html>" page-title (apply str db-fmt))))
 
 (defn handler [req]
   ;; guh. :query-string always in req, but can be nil.
