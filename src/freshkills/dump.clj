@@ -78,9 +78,9 @@
 <img style=\"float: right;\" height=\"350\" src=\"horseshoe.png\"><h1>%s</h1>
 <form action=\"/post\" method=\"post\">
 <textarea name=\"txt\" style=\"width: 60%%;\"></textarea><br>
-<input type=\"submit\" id=\"submit\" value=\"YEAH\"></input>
+<input type=\"submit\" id=\"submit\" value=\"kill\"></input>
 </form>
-<h2>dumped</h2>
+<h2>killed</h2>
 <div>%s</div>
 <p>&nbsp;<p>
 <div id=\"foot\"><a href=\"https://github.com/jli/freshkills\">src.</a> <small>&copy; 2011 <a href=\"http://circularly.org/\">jli</a> <a href=\"http://sam.zoy.org/wtfpl/COPYING\">WTFPL</a></small></div>
