@@ -43,7 +43,7 @@
                               (format-dump v)))
                     @db)]
     (format "<html><head><title>dump</title></head><body>
-<h1>%s</h1>
+<img style=\"float: right;\" src=\"box.gif\"><h1>%s</h1>
 <form action=\"/post\" method=\"post\">
 <input type=\"textarea\" name=\"txt\" style=\"width: 50%%; height: 10%%;\"></input><br>
 <input type=\"submit\" id=\"submit\" value=\"YEAH\"></input>
