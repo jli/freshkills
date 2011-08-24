@@ -77,7 +77,7 @@
     (format "<html><head><title>dump</title></head><body>
 <img style=\"float: right;\" height=\"350\" src=\"horseshoe.png\"><h1>%s</h1>
 <form action=\"/post\" method=\"post\">
-<input type=\"textarea\" name=\"txt\" style=\"width: 50%%; height: 10%%;\"></input><br>
+<textarea name=\"txt\" style=\"width: 60%%;\"></textarea><br>
 <input type=\"submit\" id=\"submit\" value=\"YEAH\"></input>
 </form>
 <h2>dumped</h2>
