@@ -64,7 +64,7 @@
 
 (defn db-html [db]
   (map (fn [[date val]]
-         (format "<div>%s - %s</div>"
+         (format "<div>%s - <pre>%s</pre></div>"
                  date (format-dump val)))
        db))
 
