@@ -87,6 +87,7 @@
 
 (defn post [req]
   (swap! db conj [(now) (req->txt req)])
+  (write-db)
   (response "posted"))
 
 (defn get-posts [_req]
