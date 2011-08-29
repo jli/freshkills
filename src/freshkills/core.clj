@@ -10,8 +10,10 @@
 
 (defn base [req]
   (condp #(.startsWith %2 %1) (:uri req)
-    "/love" (response "<3")
-    (freshkills.dump/handler req)))
+    "/love" (response/response "<3")
+    "/post" (freshkills.dump/post req)
+    "/get" (freshkills.dump/get-posts req)
+    (response/file-response "index.html")))
 
 (def app
   (-> base

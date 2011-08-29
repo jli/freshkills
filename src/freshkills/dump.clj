@@ -7,9 +7,6 @@
 
 (defn now [] (java.util.Date.))
 
-(def embiggen
-  (comp (partial apply str) (partial interpose " ") #(.toUpperCase %)))
-
 (defn drop-prefix [s pre]
   (if (.startsWith s pre)
     (.substring s (count pre))
@@ -23,7 +20,26 @@
       (.replaceAll "<a href=\"$1\">$1</a>")))
 
 
-(defonce db (atom ()))
+(def default-db-file "db.dat")
+(defn read-db
+  ([] (read-db default-db-file))
+  ([file]
+     (try (let [raw (read-string (slurp file))]
+            (map (fn [[date-ms str]]
+                   [(java.util.Date. date-ms) str])
+                 raw))
+          (catch Exception e
+            (println "got exception while reading db:" e)
+            ()))))
+
+(defonce db (atom (read-db)))
+
+(defn write-db
+  ([] (write-db default-db-file))
+  ([file]
+     (let [serial-db (map (fn [[jdate str]] [(.getTime jdate) str])
+                          @db)]
+       (spit file (pr-str serial-db)))))
 
 (def date-fmt (java.text.SimpleDateFormat. "yyyy-MM-dd"))
 (def time-fmt (java.text.SimpleDateFormat. "HH:mm:ss"))
@@ -37,9 +53,9 @@
   (-> req
       :body
       slurp
-      (drop-prefix "txt=")
-      url-decode))
-
+      ;;(drop-prefix "txt=")
+      ;;url-decode
+      ))
 
 ;; make url a link
 (defn format-dump [s]
@@ -68,25 +84,13 @@
                  date (format-dump val)))
        db))
 
-(defn main-page [req post?]
-  (when post?
-    (swap! db conj [(now) (req->txt req)]))
-  (let [db-html (-> @db
-                    db-format-date
-                    db-html)]
-    (format "<html><head><title>dump</title></head><body>
-<img style=\"float: right;\" height=\"350\" src=\"horseshoe.png\"><h1>%s</h1>
-<form action=\"/post\" method=\"post\">
-<textarea name=\"txt\" style=\"width: 60%%;\"></textarea><br>
-<input type=\"submit\" id=\"submit\" value=\"kill\"></input>
-</form>
-<h2>killed</h2>
-<div>%s</div>
-<p>&nbsp;<p>
-<div id=\"foot\"><a href=\"https://github.com/jli/freshkills\">src.</a> <small>&copy; 2011 <a href=\"http://circularly.org/\">jli</a> <a href=\"http://sam.zoy.org/wtfpl/COPYING\">WTFPL</a></small></div>
-</body></html>" (embiggen "freshkills") (apply str db-html))))
 
-(defn handler [req]
-  ;; guh. :query-string always in req, but can be nil.
-  (let [post? (.startsWith (:uri req) "/post")]
-    (response (str (main-page req post?)))))
+(defn post [req]
+  (swap! db conj [(now) (req->txt req)])
+  (response "posted"))
+
+(defn get-posts [_req]
+  (-> @db
+      db-format-date
+      db-html
+      response))

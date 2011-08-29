@@ -2,19 +2,14 @@
 
 Dumping grounds.
 
-## Usage
-
-FIXME: write
-
 ## Todo
 
-* Support for files.
-* Sane backend.
-* Sane html.
+* ClojureScript. Move formatting to frontend.
 * Deletion.
-* Search.
+* Auto-loading.
 * Limit loading, with option to dynamically load more.
 * Rate-limiting, limits, safety.
+* Files.
 
 ## License
 
