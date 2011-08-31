@@ -26,11 +26,8 @@
 
 ;;; formatting
 
-;;; madness #"(?i)(https?://[\\$-_@\\.&\\+!\\*\"'\\(\\),%:;#a-zA-Z0-9/]+)"
-(def link-rex #"(?i)([a-z]+://\S+)")
-
 (defn linkify [s]
-  (. s (replace link-rex "<a href=\"$1\">$1</a>")))
+  (. s (replace (js* "/([a-z]+:\\/\\/\\S+)/ig") "<a href=\"$1\">$1</a>")))
 
 (defn format-date [ms]
   (. (ms->date ms) (toIsoString true)))
