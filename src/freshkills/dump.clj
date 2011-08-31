@@ -5,6 +5,8 @@
         )
   (:import [org.apache.commons.lang StringEscapeUtils]))
 
+;;; utils
+
 (defn now [] (.getTime (java.util.Date.)))
 
 (defn query-string->map [qs]
@@ -13,6 +15,7 @@
     (let [assoc-list (map #(vec (.split % "=")) (.split qs "&"))
           keyworded (map (fn [[k v]] [(keyword k) v]) assoc-list)]
       (into {} keyworded))))
+
 
 
 ;;; "persistence"
@@ -32,35 +35,14 @@
   ([] (write-db default-db-file))
   ([file] (spit file (pr-str @db))))
 
-(def date-fmt (java.text.SimpleDateFormat. "yyyy-MM-dd"))
-(def time-fmt (java.text.SimpleDateFormat. "HH:mm:ss"))
-(defn time-str [d] (.format time-fmt d))
-(defn date-str [d] (format "<b>%s</b> %s"
-                           (.format date-fmt d)
-                           (time-str d)))
 
+
+;;; requests
 
 (defn req->txt [req]
   (-> req
       :body
       slurp))
-
-(defn date-day [date]
-  (let [cal (doto (java.util.Calendar/getInstance)
-              (.setTime date))
-        field (fn [field] (.get cal field))]
-    (.get cal java.util.Calendar/DAY_OF_YEAR)))
-
-;;; only shows day once in a sequence
-(defn db-format-date [db]
-  (let [prev-day (atom false)]
-    (map (fn [[date val]]
-           (let [day (date-day date)]
-             (if (= day @prev-day)
-               [(time-str date) val]
-               (do (swap! prev-day (constantly day))
-                   [(date-str date) val]))))
-         db)))
 
 (defn post [req]
   (swap! db conj [(now) (req->txt req)])

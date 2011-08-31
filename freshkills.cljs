@@ -2,9 +2,12 @@
   (:require [goog.dom :as dom]
             [goog.net.XhrIo :as Xhr]
             [goog.events :as events]
+            [goog.date :as date]
             [cljs.reader :as reader]))
 
-;;; silly output junk. make it better plz.
+;;; utils
+
+;; silly output junk. make it better plz.
 
 (defn out-prim
   ([s elt] (dom/append (dom/getElement elt) s))
@@ -19,6 +22,11 @@
 ;;   (out-prim (apply str args))
 ;;   (out-prim (dom/htmlToDocumentFragment " ")))
 
+(defn date-ms [ms]
+  (doto (goog.date.DateTime.) (. (setTime ms))))
+
+
+
 ;;; formatting
 
 ;;; madness #"(?i)(https?://[\\$-_@\\.&\\+!\\*\"'\\(\\),%:;#a-zA-Z0-9/]+)"
@@ -30,14 +38,42 @@
   s
   )
 
-(defn format-dump [s]
+;; (def date-fmt (java.text.SimpleDateFormat. "yyyy-MM-dd"))
+;; (def time-fmt (java.text.SimpleDateFormat. "HH:mm:ss"))
+;; (defn time-str [d] (.format time-fmt d))
+;; (defn date-str [d] (format "<b>%s</b> %s"
+;;                            (.format date-fmt d)
+;;                            (time-str d)))
+
+;; (defn date-day [date]
+;;   (let [cal (doto (java.util.Calendar/getInstance)
+;;               (.setTime date))
+;;         field (fn [field] (.get cal field))]
+;;     (.get cal java.util.Calendar/DAY_OF_YEAR)))
+
+;; ;;; only shows day once in a sequence
+;; (defn db-format-date [db]
+;;   (let [prev-day (atom false)]
+;;     (map (fn [[date val]]
+;;            (let [day (date-day date)]
+;;              (if (= day @prev-day)
+;;                [(time-str date) val]
+;;                (do (swap! prev-day (constantly day))
+;;                    [(date-str date) val]))))
+;;          db)))
+
+(defn format-date [ms]
+  (. (date-ms ms) (toIsoString true)))
+
+(defn format-post [s]
   ;;(linkify (StringEscapeUtils/escapeHtml s))
   (linkify s)
   )
 
 (defn posts->html [posts]
   (let [divs (map (fn [[date val]]
-                     (str "<div>" date " - <pre>" (format-dump val) "</pre></div>"))
+                    (str "<div>" (format-date date)
+                         " - <pre>" (format-post val) "</pre></div>"))
                   posts)]
     (apply str divs)))
 
