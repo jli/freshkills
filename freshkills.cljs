@@ -35,13 +35,8 @@
 (defn format-date [ms]
   (. (ms->date ms) (toIsoString true)))
 
-;; TODO proper html escaping.
-(defn stupid-escape [s]
-  (-> s
-      (. (replace (js* "/</g") "&lt;"))
-      (. (replace (js* "/>/g") "&gt;"))))
 (defn format-post [s]
-  (linkify (stupid-escape s)))
+  (linkify (goog.string.htmlEscape s true)))
 
 (defn post->html [[date val]]
   (let [delete-button nil] ;; implement
