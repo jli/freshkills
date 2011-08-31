@@ -43,12 +43,14 @@
 (defn format-post [s]
   (linkify (stupid-escape s)))
 
+(defn post->html [[date val]]
+  (let [delete-button nil] ;; implement
+    (str "<div id=\"" date "\"><small><small>" (format-date date)
+         "&gt;</small></small> " (format-post val) "</div>")))
+
+;; TODO redo nice date dedup
 (defn posts->html [posts]
-  (let [divs (map (fn [[date val]]
-                    (str "<div><small><small>" (format-date date)
-                         "&gt;</small></small> " (format-post val) "</div>"))
-                  posts)]
-    (apply str divs)))
+  (apply str (map post->html posts)))
 
 
 ;;; real stuff
