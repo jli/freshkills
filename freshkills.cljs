@@ -13,16 +13,10 @@
   ([s elt] (dom/append (dom/getElement elt) s))
   ([s] (out-prim s "killed")))
 
-(defn out-html [html] (out-prim (dom/htmlToDocumentFragment html)))
-(defn out-line [] (out-html "<br>"))
 (defn out-insert-html [html]
   (dom/insertChildAt (dom/getElement "killed") (dom/htmlToDocumentFragment html) 0))
 
-;; (defn out [& args]
-;;   (out-prim (apply str args))
-;;   (out-prim (dom/htmlToDocumentFragment " ")))
-
-(defn date-ms [ms]
+(defn ms->date [ms]
   (doto (goog.date.DateTime.) (. (setTime ms))))
 
 
@@ -38,33 +32,11 @@
   s
   )
 
-;; (def date-fmt (java.text.SimpleDateFormat. "yyyy-MM-dd"))
-;; (def time-fmt (java.text.SimpleDateFormat. "HH:mm:ss"))
-;; (defn time-str [d] (.format time-fmt d))
-;; (defn date-str [d] (format "<b>%s</b> %s"
-;;                            (.format date-fmt d)
-;;                            (time-str d)))
-
-;; (defn date-day [date]
-;;   (let [cal (doto (java.util.Calendar/getInstance)
-;;               (.setTime date))
-;;         field (fn [field] (.get cal field))]
-;;     (.get cal java.util.Calendar/DAY_OF_YEAR)))
-
-;; ;;; only shows day once in a sequence
-;; (defn db-format-date [db]
-;;   (let [prev-day (atom false)]
-;;     (map (fn [[date val]]
-;;            (let [day (date-day date)]
-;;              (if (= day @prev-day)
-;;                [(time-str date) val]
-;;                (do (swap! prev-day (constantly day))
-;;                    [(date-str date) val]))))
-;;          db)))
-
 (defn format-date [ms]
-  (. (date-ms ms) (toIsoString true)))
+  (. (ms->date ms) (toIsoString true)))
 
+;; TODO fix html escaping.
+;; TODO fix links
 (defn format-post [s]
   ;;(linkify (StringEscapeUtils/escapeHtml s))
   (linkify s)
@@ -72,8 +44,8 @@
 
 (defn posts->html [posts]
   (let [divs (map (fn [[date val]]
-                    (str "<div>" (format-date date)
-                         " - <pre>" (format-post val) "</pre></div>"))
+                    (str "<div><small><small>" (format-date date)
+                         "&gt;</small></small> " (format-post val) "</div>"))
                   posts)]
     (apply str divs)))
 
@@ -85,19 +57,18 @@
 (def latest-post-date (atom nil))
 
 (defn ^:export load-posts []
-  (let [params (if-let [latest @latest-post-date]
-                (str "?laterthan=" latest)
-                "")
+  (let [url (if-let [latest @latest-post-date]
+                (str "/get?laterthan=" latest)
+                "/get")
         k (fn [e]
             (let [new-posts (-> (.target e)
-                                (. (getResponseText)) ;;bleh
+                                (. (getResponseText))
                                 (reader/read-string))
                   html (posts->html new-posts)
-                  [[latest _post]] new-posts
-                  ]
+                  [[latest _post]] new-posts]
               (reset! latest-post-date latest)
               (out-insert-html html)))]
-    (Xhr/send (str "/get" params) k)))
+    (Xhr/send url k)))
 
 (defn ^:export post []
   (let [clear&reload (fn [_e]
