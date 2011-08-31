@@ -26,9 +26,10 @@
   ([] (read-db default-db-file))
   ([file]
      (try (read-string (slurp file))
+          (catch java.io.FileNotFoundException _
+            (println "db file didn't exist. that's okay." ()))
           (catch Exception e
-            (println "got exception while reading db:" e)
-            ()))))
+            (println "got exception while reading db! crazy!" e) ()))))
 
 (defonce db (atom (read-db)))
 
