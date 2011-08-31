@@ -3,6 +3,7 @@
             [goog.net.XhrIo :as Xhr]
             [goog.events :as events]
             [goog.date :as date]
+            [goog.Timer :as Timer]
             [cljs.reader :as reader]))
 
 ;;; utils
@@ -61,11 +62,12 @@
         k (fn [e]
             (let [new-posts (-> (.target e)
                                 (. (getResponseText))
-                                (reader/read-string))
-                  html (posts->html new-posts)
-                  [[latest _post]] new-posts]
-              (reset! latest-post-date latest)
-              (out-insert-html html)))]
+                                reader/read-string)]
+              (when (not (empty? new-posts))
+                (let [html (posts->html new-posts)
+                      [[latest _post]] new-posts]
+                  (reset! latest-post-date latest)
+                  (out-insert-html html)))))]
     (Xhr/send url k)))
 
 (defn ^:export post []
@@ -76,3 +78,9 @@
     (Xhr/send "/post" clear&reload "POST" (.value (dom/getElement "txt")))
     ;; prevent form submission by returning false
     false))
+
+(defn ^:export start-auto-loader []
+  (let [timer (goog.Timer. 5000)]
+    (load-posts)
+    (events/listen timer goog.Timer/TICK load-posts)
+    (. timer (start))))
