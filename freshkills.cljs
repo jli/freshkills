@@ -27,16 +27,12 @@
 (def link-rex #"(?i)([a-z]+://\S+)")
 
 (defn linkify [s]
-  ;;   (-> (.matcher link-rex s)
-  ;; (.replaceAll "<a href=\"$1\">$1</a>")
-  s
-  )
+  (. s (replace link-rex "<a href=\"$1\">$1</a>")))
 
 (defn format-date [ms]
   (. (ms->date ms) (toIsoString true)))
 
 ;; TODO fix html escaping.
-;; TODO fix links
 (defn format-post [s]
   ;;(linkify (StringEscapeUtils/escapeHtml s))
   (linkify s)
