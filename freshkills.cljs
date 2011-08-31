@@ -32,11 +32,13 @@
 (defn format-date [ms]
   (. (ms->date ms) (toIsoString true)))
 
-;; TODO fix html escaping.
+;; TODO proper html escaping.
+(defn stupid-escape [s]
+  (-> s
+      (. (replace (js* "/</g") "&lt;"))
+      (. (replace (js* "/>/g") "&gt;"))))
 (defn format-post [s]
-  ;;(linkify (StringEscapeUtils/escapeHtml s))
-  (linkify s)
-  )
+  (linkify (stupid-escape s)))
 
 (defn posts->html [posts]
   (let [divs (map (fn [[date val]]
