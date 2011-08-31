@@ -3,7 +3,8 @@
         [ring.util.response :as response]
         [ring.middleware.file :only [wrap-file]]
         [ring.middleware.reload :only [wrap-reload]]
-        [ring.middleware.stacktrace :only [wrap-stacktrace]])
+        [ring.middleware.stacktrace :only [wrap-stacktrace]]
+        [clojure.contrib.command-line :only [with-command-line]])
   (:require [swank.swank]
             [freshkills.dump])
   (:gen-class))
@@ -21,6 +22,13 @@
       (wrap-file ".")
       (wrap-stacktrace)))
 
-(defn -main []
-  (swank.swank/start-server :port 8081)
-  (run-jetty #'app {:port 8080}))
+(defn -main [& args]
+  ;; there should be some sweet thing that handles parseInt automatically.
+  (with-command-line args
+    "FRESHKILLS INC....................."
+    [[jetty-port j "jetty port" "8080"]
+     [no-swank? "don't start swank server" false]
+     [swank-port s "swank port" "8081"]]
+    (when (not no-swank?)
+      (swank.swank/start-server :port (Integer/parseInt swank-port)))
+    (run-jetty #'app {:port (Integer/parseInt jetty-port)})))
