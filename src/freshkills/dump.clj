@@ -1,33 +1,27 @@
 (ns freshkills.dump
   (:use [ring.util.response :as response]
-        [ring.util.codec :only [url-decode]]
+        ;;[ring.util.codec :only [url-decode]]
         ;;[match.core :only [match]]
         )
   (:import [org.apache.commons.lang StringEscapeUtils]))
 
-(defn now [] (java.util.Date.))
+(defn now [] (.getTime (java.util.Date.)))
 
-(defn drop-prefix [s pre]
-  (if (.startsWith s pre)
-    (.substring s (count pre))
-    s))
+(defn query-string->map [qs]
+  (if (empty? qs)
+    {}
+    (let [assoc-list (map #(vec (.split % "=")) (.split qs "&"))
+          keyworded (map (fn [[k v]] [(keyword k) v]) assoc-list)]
+      (into {} keyworded))))
 
-;;; madness #"(?i)(https?://[\\$-_@\\.&\\+!\\*\"'\\(\\),%:;#a-zA-Z0-9/]+)"
-(def link-rex #"(?i)([a-z]+://\S+)")
 
-(defn linkify [s]
-  (-> (.matcher link-rex s)
-      (.replaceAll "<a href=\"$1\">$1</a>")))
-
+;;; "persistence"
 
 (def default-db-file "db.dat")
 (defn read-db
   ([] (read-db default-db-file))
   ([file]
-     (try (let [raw (read-string (slurp file))]
-            (map (fn [[date-ms str]]
-                   [(java.util.Date. date-ms) str])
-                 raw))
+     (try (read-string (slurp file))
           (catch Exception e
             (println "got exception while reading db:" e)
             ()))))
@@ -36,10 +30,7 @@
 
 (defn write-db
   ([] (write-db default-db-file))
-  ([file]
-     (let [serial-db (map (fn [[jdate str]] [(.getTime jdate) str])
-                          @db)]
-       (spit file (pr-str serial-db)))))
+  ([file] (spit file (pr-str @db))))
 
 (def date-fmt (java.text.SimpleDateFormat. "yyyy-MM-dd"))
 (def time-fmt (java.text.SimpleDateFormat. "HH:mm:ss"))
@@ -52,14 +43,7 @@
 (defn req->txt [req]
   (-> req
       :body
-      slurp
-      ;;(drop-prefix "txt=")
-      ;;url-decode
-      ))
-
-;; make url a link
-(defn format-dump [s]
-  (linkify (StringEscapeUtils/escapeHtml s)))
+      slurp))
 
 (defn date-day [date]
   (let [cal (doto (java.util.Calendar/getInstance)
@@ -78,20 +62,17 @@
                    [(date-str date) val]))))
          db)))
 
-(defn db-html [db]
-  (map (fn [[date val]]
-         (format "<div>%s - <pre>%s</pre></div>"
-                 date (format-dump val)))
-       db))
-
-
 (defn post [req]
   (swap! db conj [(now) (req->txt req)])
   (write-db)
   (response "posted"))
 
-(defn get-posts [_req]
-  (-> @db
-      db-format-date
-      db-html
-      response))
+(defn get-posts [req]
+  (let [query-map (query-string->map (:query-string req))
+        later-than (try (BigInteger. (:laterthan query-map))
+                        (catch Exception _ nil))
+        posts (if (nil? later-than)
+                @db
+                (take-while (fn [[date _]] (> date later-than)) @db))]
+    ;; TODO hm, what does response do with the seq? blah.
+    (response (str (into [] posts)))))
