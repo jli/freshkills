@@ -60,3 +60,12 @@
                 (take-while (fn [[date _]] (> date later-than)) @db))]
     ;; TODO hm, what does response do with the seq? blah.
     (response (str (into [] posts)))))
+
+(defn remove-post [req]
+  (let [query-map (query-string->map (:query-string req))
+        id (try (BigInteger. (:id query-map))
+                (catch Exception _ nil))]
+    (if (nil? id)
+      (response "not found")
+      (do (swap! db #(filter (fn [[time _]] (not= time id)) %))
+          (response "done")))))

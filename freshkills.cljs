@@ -68,9 +68,9 @@
 
 (defn ^:export post []
   (let [clear&reload (fn [_e]
+                       (load-posts)
                        ;; make this less horrifying
-                       (js* "document.getElementById('txt').value=\"\"")
-                       (load-posts))]
+                       (js* "document.getElementById('txt').value=\"\""))]
     (Xhr/send "/post" clear&reload "POST" (.value (dom/getElement "txt")))
     ;; prevent form submission by returning false
     false))
