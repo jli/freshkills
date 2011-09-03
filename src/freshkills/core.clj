@@ -14,7 +14,7 @@
     "/love" (response/response "<3")
     "/post" (freshkills.dump/post req)
     "/get" (freshkills.dump/get-posts req)
-    "/remove" (freshkills.dump/remove-post req)
+    "/rm" (freshkills.dump/remove-post req)
     (response/file-response "index.html")))
 
 (def app

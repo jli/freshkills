@@ -66,6 +66,6 @@
         id (try (BigInteger. (:id query-map))
                 (catch Exception _ nil))]
     (if (nil? id)
-      (response "not found")
+      (response (str false))
       (do (swap! db #(filter (fn [[time _]] (not= time id)) %))
-          (response "done")))))
+          (response (str true))))))
