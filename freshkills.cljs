@@ -1,6 +1,7 @@
 (ns freshkills.main
   (:require [goog.dom :as dom]
             [goog.net.XhrIo :as Xhr]
+            [goog.events.EventType :as EventType]
             [goog.events :as events]
             [goog.date :as date]
             [goog.Timer :as Timer]
@@ -12,12 +13,17 @@
 
 ;; silly output junk. make it better plz.
 
+(defn html [s] (dom/htmlToDocumentFragment s))
+
+(defn js-alert [msg]
+  (js* "alert(~{msg})"))
+
 (defn out-prim
   ([s elt] (dom/append (dom/getElement elt) s))
   ([s] (out-prim s "killed")))
 
-(defn out-insert-html [html]
-  (dom/insertChildAt (dom/getElement "killed") (dom/htmlToDocumentFragment html) 0))
+(defn out-insert [dom]
+  (dom/insertChildAt (dom/getElement "killed") dom 0))
 
 (defn ms->date [ms]
   (doto (goog.date.DateTime.) (. (setTime ms))))
@@ -35,17 +41,31 @@
 (defn format-post [s]
   (linkify (goog.string.htmlEscape s true)))
 
-(defn post->html [[date val]]
-  (let [delete-button nil] ;; implement
-    (str "<div id=\"" date "\"><small><small>" (format-date date)
-         "&gt;</small></small> " (format-post val) "</div>")))
-
-;; TODO redo nice date dedup
-(defn posts->html [posts]
-  (apply str (map post->html posts)))
 
 
 ;;; real stuff
+
+(defn insert-post-html [[date val]]
+  (let [hidden (js* "{'style' : 'visibility: hidden'} ")
+        visible (js* "{'style' : 'visibility: visible'} ")
+        button (dom/createDom "button" hidden "x")
+        div (dom/createDom
+             "div" nil button
+             (html (str "<small><small>" (format-date date) "&gt;</small></small> "
+                        (format-post val))))
+        k (fn [e]
+            (if (-> (.target e) (. (getResponseText)) reader/read-string)
+              (dom/removeNode div)
+              (js-alert "failed to remove!")))
+        rm-on-click (fn [] (Xhr/send (str "/rm?id=" date) k))]
+    (events/listen div goog.events.EventType.MOUSEOVER (fn [] (dom/setProperties button visible)))
+    (events/listen div goog.events.EventType.MOUSEOUT (fn [] (dom/setProperties button hidden)))
+    (events/listen button goog.events.EventType.CLICK rm-on-click)
+    (out-insert div)))
+
+;; TODO redo nice date dedup
+(defn insert-posts-html [posts]
+  (doseq [p posts] (insert-post-html p)))
 
 ;; Date of the latest post on the page.
 ;; Used by load-posts to request only latest posts.
@@ -59,11 +79,10 @@
             (let [new-posts (-> (.target e)
                                 (. (getResponseText))
                                 reader/read-string)]
-              (when (not (empty? new-posts))
-                (let [html (posts->html new-posts)
-                      [[latest _post]] new-posts]
+              (when-not (empty? new-posts)
+                (let [[[latest _post]] new-posts]
                   (reset! latest-post-date latest)
-                  (out-insert-html html)))))]
+                  (insert-posts-html (reverse new-posts))))))]
     (Xhr/send url k)))
 
 (defn ^:export post []
