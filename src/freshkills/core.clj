@@ -4,6 +4,7 @@
         [ring.middleware.file :only [wrap-file]]
         [ring.middleware.reload :only [wrap-reload]]
         [ring.middleware.stacktrace :only [wrap-stacktrace]]
+        [ring.middleware.gzip :only [wrap-gzip]]
         [clojure.contrib.command-line :only [with-command-line]])
   (:require [swank.swank]
             [freshkills.dump])
@@ -21,7 +22,8 @@
   (-> base
       (wrap-reload '(freshkills.core freshkills.dump))
       (wrap-file ".")
-      (wrap-stacktrace)))
+      wrap-stacktrace
+      wrap-gzip))
 
 (defn -main [& args]
   ;; there should be some sweet thing that handles parseInt automatically.
