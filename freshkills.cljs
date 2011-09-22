@@ -7,8 +7,6 @@
             [goog.Timer :as Timer]
             [cljs.reader :as reader]))
 
-(def auto-load-interval 5000)
-
 ;;; utils
 
 ;; silly output junk. make it better plz.
@@ -94,8 +92,10 @@
     ;; prevent form submission by returning false
     false))
 
-(defn ^:export start-auto-loader []
-  (let [timer (goog.Timer. auto-load-interval)]
-    (load-posts)
-    (events/listen timer goog.Timer/TICK load-posts)
-    (. timer (start))))
+(defn ^:export start-auto-loader
+  ([] (start-auto-loader 5000))
+  ([interval]
+     (let [timer (goog.Timer. interval)]
+       (load-posts)
+       (events/listen timer goog.Timer/TICK load-posts)
+       (. timer (start)))))
