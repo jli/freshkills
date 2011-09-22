@@ -1,7 +1,9 @@
 (ns freshkills.core
-  (:use [ring.adapter.jetty :only [run-jetty]]
-        [ring.util.response :as response]
-        [ring.middleware.file :only [wrap-file]]
+  (:use [compojure.core]
+        [compojure.route :only [resources]]
+        [ring.adapter.jetty :only [run-jetty]]
+        [ring.util.response :only [file-response]]
+        [ring.middleware.params :only [wrap-params]]
         [ring.middleware.reload :only [wrap-reload]]
         [ring.middleware.stacktrace :only [wrap-stacktrace]]
         [ring.middleware.gzip :only [wrap-gzip]]
@@ -10,17 +12,18 @@
             [freshkills.dump])
   (:gen-class))
 
-(defn base [req]
-  (condp #(.startsWith %2 %1) (:uri req)
-    "/love" (response/response "<3")
-    "/post" (freshkills.dump/post req)
-    "/get" (freshkills.dump/get-posts req)
-    "/rm" (freshkills.dump/remove-post req)
-    (response/file-response "index.html")))
+(defroutes base
+  (POST "/post" [txt] (freshkills.dump/post txt))
+  (GET "/get" [laterthan] (freshkills.dump/get-posts laterthan))
+  (GET "/rm" [id] (freshkills.dump/remove-post id))
+  (GET "/love" [] (response/response "<3"))
+  (GET "/" [] (file-response "resources/public/index.html"))
+  (resources "/")
+  (ANY "*" [] (file-response "resources/public/index.html")))
 
 (def app
      (-> base
-         (wrap-file ".")
+         wrap-params
          wrap-gzip
          wrap-stacktrace
          (wrap-reload '(freshkills.core freshkills.dump))))

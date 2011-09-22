@@ -5,5 +5,6 @@
                  [ring/ring-core "0.3.11"]
                  [ring/ring-devel "0.3.11"]
                  [ring/ring-jetty-adapter "0.3.11"]
-                 [org.clojars.mikejs/ring-gzip-middleware "0.1.0-SNAPSHOT"]]
+                 [org.clojars.mikejs/ring-gzip-middleware "0.1.0-SNAPSHOT"]
+                 [compojure "0.6.5"]]
   :main freshkills.core)
