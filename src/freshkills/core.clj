@@ -19,11 +19,12 @@
     (response/file-response "index.html")))
 
 (def app
-  (-> base
-      (wrap-reload '(freshkills.core freshkills.dump))
-      (wrap-file ".")
-      wrap-stacktrace
-      wrap-gzip))
+     (-> base
+         (wrap-file ".")
+         wrap-gzip
+         wrap-stacktrace
+         (wrap-reload '(freshkills.core freshkills.dump))))
+
 
 (defn -main [& args]
   ;; there should be some sweet thing that handles parseInt automatically.
