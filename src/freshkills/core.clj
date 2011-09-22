@@ -2,7 +2,7 @@
   (:use [compojure.core]
         [compojure.route :only [resources]]
         [ring.adapter.jetty :only [run-jetty]]
-        [ring.util.response :only [file-response]]
+        [ring.util.response :only [response file-response]]
         [ring.middleware.params :only [wrap-params]]
         [ring.middleware.reload :only [wrap-reload]]
         [ring.middleware.stacktrace :only [wrap-stacktrace]]
@@ -16,7 +16,7 @@
   (POST "/post" [txt] (freshkills.dump/post txt))
   (GET "/get" [laterthan] (freshkills.dump/get-posts laterthan))
   (GET "/rm" [id] (freshkills.dump/remove-post id))
-  (GET "/love" [] (response/response "<3"))
+  (GET "/love" [] (response "<3"))
   (GET "/" [] (file-response "resources/public/index.html"))
   (resources "/")
   (ANY "*" [] (file-response "resources/public/index.html")))
