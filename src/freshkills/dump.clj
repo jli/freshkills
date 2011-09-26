@@ -40,7 +40,7 @@
   (let [later-than (try (BigInteger. time) (catch Exception _ nil))
         posts (if (nil? later-than)
                 @db
-                (take-while (fn [[date _]] (> date later-than)) @db))]
+                (into [] (take-while (fn [[date _]] (> date later-than)) @db)))]
     (response (str posts))))
 
 (defn remove-post [id]
