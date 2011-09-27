@@ -16,6 +16,7 @@
   (POST "/post" [txt] (freshkills.dump/post txt))
   (GET "/get" [laterthan] (freshkills.dump/get-posts laterthan))
   (GET "/rm" [id] (freshkills.dump/remove-post id))
+  (POST "/edit" [id txt] (freshkills.dump/edit-post id txt))
   (GET "/love" [] (response "<3"))
   (GET "/" [] (file-response "resources/public/index.html"))
   (resources "/")
