@@ -40,8 +40,9 @@
   (let [later-than (try (BigInteger. time) (catch Exception _ nil))
         posts (if (nil? later-than)
                 @db
-                (into [] (take-while (fn [[date _]] (> date later-than)) @db)))]
-    (response (str posts))))
+                (take-while (fn [[date _]] (> date later-than)) @db))]
+    ;; FIXME is into necessary?
+    (response (str (into [] posts)))))
 
 (defn remove-post [id]
   (let [id (try (BigInteger. id) (catch Exception _ nil))]
