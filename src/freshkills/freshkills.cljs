@@ -1,5 +1,6 @@
 (ns freshkills.main
   (:require [goog.dom :as dom]
+            [goog.string :as string]
             [goog.net.XhrIo :as Xhr]
             [goog.events.EventType :as EventType]
             [goog.events :as events]
@@ -84,12 +85,14 @@
     (Xhr/send url k)))
 
 (defn ^:export post []
-  (let [clear&reload (fn [_e]
+  (let [txt (.value (dom/getElement "txt"))
+        clear&reload (fn [_e]
                        (load-posts)
                        (set! (.value (dom/getElement "txt")) ""))]
-    (Xhr/send "/post" clear&reload "POST"
-              (js/encodeURI (str "txt=" (.value (dom/getElement "txt")))))
-    ;; prevent form submission by returning false
+    (if-not (string/isEmpty txt)
+      (Xhr/send "/post" clear&reload "POST" (map->uri-opts {:txt txt}))
+      (js-alert "only whitespace!"))
+    ;; stop form submission
     false))
 
 (defn ^:export start-auto-loader
