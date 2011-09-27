@@ -43,10 +43,8 @@
 (defn format-date [ms]
   (. (ms->date ms) (toIsoString true)))
 
-;; no need to escape html when not passing string into
-;; dom/htmlToDocumentFragment
 (defn format-post [s]
-  (linkify s))
+  (html (linkify (string/htmlEscape s true))))
 
 
 
