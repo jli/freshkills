@@ -65,36 +65,38 @@
         delete-button (dom/createDom "button" nil "x")
         edit-button (dom/createDom "button" nil "edit")
         buttons (dom/createDom "span" hidden delete-button edit-button)
-        val-span (atom (dom/createDom "span" nil (format-post val)))
+        val-dom (atom (dom/createDom "span" nil (format-post val)))
+        set-val! (fn [new]
+                   (let [old @val-dom]
+                     (reset! val-dom new)
+                     (dom/replaceNode new old)))
         div (dom/createDom
              "div" nil buttons
              (html (str "<small><small>" (format-date date) "&gt;</small></small> "))
-             @val-span)
+             @val-dom)
         rm-k (fn [e]
                (if (true? (event->clj e))
                  (dom/removeNode div)
                  (js-alert "failed to remove!")))
         rm (fn [] (Xhr/send (str "/rm?id=" date) rm-k))
-        ;; FIXME rewire edit button properly
-        submit-k (fn [e editor new-val]
+        submit-k (fn [e new-val]
                    (if (true? (event->clj e))
-                     (let [v2 (dom/createDom "span" nil (format-post new-val))]
-                       (do (dom/replaceNode v2 editor)
-                           (reset! val-span v2)))
+                     (set-val! (dom/createDom "span" nil (format-post new-val)))
                      (js-alert "failed to edit!")))
-        submit-edit (fn [editor input]
+        submit-edit (fn [input]
                       (let [new (.value input)]
-                        (Xhr/send "/edit" (fn [e] (submit-k e editor new)) "POST"
+                        (Xhr/send "/edit" (fn [e] (submit-k e new)) "POST"
                                   (map->uri-opts {:id date :txt new}))
                         ;; stop form submit
                         false))
+        ;; FIXME form appears on separate line
         edit (fn []
-               ;; FIXME form appears on separate line
-               (let [input (dom/createDom "input" (js* "{'type':'textbox', 'value':~{val}}"))
+               (let [val (dom/getTextContent @val-dom)
+                     input (dom/createDom "input" (js* "{'type':'textbox', 'value':~{val}}"))
                      editor (dom/createDom "form" nil input)]
-                 (dom/replaceNode editor @val-span)
+                 (set-val! editor)
                  (. input (focus))
-                 (set! (.onsubmit editor) (fn [] (submit-edit editor input)))))]
+                 (set! (.onsubmit editor) (fn [] (submit-edit input)))))]
     (events/listen div goog.events.EventType.MOUSEOVER (fn [] (dom/setProperties buttons visible)))
     (events/listen div goog.events.EventType.MOUSEOUT (fn [] (dom/setProperties buttons hidden)))
     (events/listen delete-button goog.events.EventType.CLICK rm)
