@@ -43,10 +43,10 @@
 ;;; formatting
 
 (defn linkify [s]
-  (. s (replace (js* "/([a-z]+:\\/\\/\\S+)/ig") "<a href=\"$1\">$1</a>")))
+  (.replace s (js* "/([a-z]+:\\/\\/\\S+)/ig") "<a href=\"$1\">$1</a>"))
 
 (defn format-date [ms]
-  (. (ms->date ms) (toIsoString true)))
+  (.toIsoString (ms->date ms) true))
 
 (defn render-date [ms]
   (html (str "<small><small>" (format-date ms) "&gt;</small></small> ")))
