@@ -12,7 +12,8 @@
 
 ;; silly output junk. make it better plz.
 
-(defn html [s] (dom/htmlToDocumentFragment s))
+(def html dom/htmlToDocumentFragment)
+(def make-dom dom/createDom)
 
 (defn js-alert [& args]
   (let [msg (apply str args)]
@@ -28,10 +29,14 @@
 (defn ms->date [ms]
   (doto (goog.date.DateTime.) (. (setTime ms))))
 
+(defn map->uri-opts [m]
+  (let [pairs (map (fn [[k v]] (str (name k) "=" (js/encodeURIComponent v))) m)]
+    (apply str (interpose "&" pairs))))
+
 (defn event->clj [e]
-  (-> (.target e)
-      (. (getResponseText))
-      reader/read-string))
+   (-> (.target e)
+       (. (getResponseText))
+       reader/read-string))
 
 
 
@@ -43,62 +48,65 @@
 (defn format-date [ms]
   (. (ms->date ms) (toIsoString true)))
 
-(defn format-post [s]
+(defn render-date [ms]
+  (html (str "<small><small>" (format-date ms) "&gt;</small></small> ")))
+
+(defn render-post [s]
   (html (linkify (string/htmlEscape s true))))
 
 
 
 ;;; real stuff
 
-(defn map->uri-opts [m]
-  (let [pairs (map (fn [[k v]] (str (name k) "=" (js/encodeURIComponent v))) m)]
-    (apply str (interpose "&" pairs))))
+(def hidden (.strobj {"style" "visibility: hidden"}))
+(def visible (.strobj {"style" "visibility: visible"}))
 
+(defn replace-dom! [dom-atom new-dom]
+  (let [old-dom @dom-atom]
+    (reset! dom-atom new-dom)
+    (dom/replaceNode new-dom old-dom)))
 
-;; FIXME only delete for untagged? delete when text blank?
-;; FIXME make this less horrifying!
-(defn insert-post-html [[date val]]
-  (let [hidden (js* "{'style' : 'visibility: hidden'} ")
-        visible (js* "{'style' : 'visibility: visible'} ")
-        delete-button (dom/createDom "button" nil "x")
-        edit-button (dom/createDom "button" nil "edit")
-        buttons (dom/createDom "span" hidden delete-button edit-button)
-        val-dom (atom (dom/createDom "span" nil (format-post val)))
-        set-val! (fn [new]
-                   (let [old @val-dom]
-                     (reset! val-dom new)
-                     (dom/replaceNode new old)))
-        div (dom/createDom
-             "div" nil buttons
-             (html (str "<small><small>" (format-date date) "&gt;</small></small> "))
-             @val-dom)
-        rm-k (fn [e]
-               (if (true? (event->clj e))
-                 (dom/removeNode div)
-                 (js-alert "failed to remove!")))
-        rm (fn [] (Xhr/send (str "/rm?id=" date) rm-k))
+;; FIXME probably leaks, right?
+(defn rm-handler [date post-div]
+  (Xhr/send (str "/rm?id=" date)
+            (fn [e] (if (true? (event->clj e))
+                      (dom/removeNode post-div)
+                      (js-alert "failed to remove!")))))
+
+;; FIXME form appears on separate line
+(defn edit-handler [date val-dom]
+  (let [;; when xhr returns, set new post value
         submit-k (fn [e new-val]
                    (if (true? (event->clj e))
-                     (set-val! (dom/createDom "span" nil (format-post new-val)))
+                     (replace-dom! val-dom (make-dom "span" nil (render-post new-val)))
                      (js-alert "failed to edit!")))
+        ;; wire up form to send xhr
         submit-edit (fn [input]
                       (let [new (.value input)]
                         (Xhr/send "/edit" (fn [e] (submit-k e new)) "POST"
                                   (map->uri-opts {:id date :txt new}))
                         ;; stop form submit
-                        false))
-        ;; FIXME form appears on separate line
-        edit (fn []
-               (let [val (dom/getTextContent @val-dom)
-                     input (dom/createDom "input" (js* "{'type':'textbox', 'value':~{val}}"))
-                     editor (dom/createDom "form" nil input)]
-                 (set-val! editor)
-                 (. input (focus))
-                 (set! (.onsubmit editor) (fn [] (submit-edit input)))))]
-    (events/listen div goog.events.EventType.MOUSEOVER (fn [] (dom/setProperties buttons visible)))
-    (events/listen div goog.events.EventType.MOUSEOUT (fn [] (dom/setProperties buttons hidden)))
-    (events/listen delete-button goog.events.EventType.CLICK rm)
-    (events/listen edit-button goog.events.EventType.CLICK edit)
+                        false))]
+    (let [val (dom/getTextContent @val-dom)
+          input (make-dom "input" (.strobj {"type" "textbox" "value" val}))
+          editor (make-dom "form" nil input)]
+      (replace-dom! val-dom editor)
+      (. input (focus))
+      (set! (.onsubmit editor) #(submit-edit input)))))
+
+
+;; FIXME only delete for untagged? delete when text blank?
+(defn insert-post-html [[date val]]
+  (let [;; dom stuff
+        delete-button (make-dom "button" nil "x")
+        edit-button (make-dom "button" nil "edit")
+        buttons (make-dom "span" hidden delete-button edit-button)
+        val-dom (atom (make-dom "span" nil (render-post val)))
+        div (make-dom "div" nil buttons (render-date date) @val-dom)]
+    (events/listen div events/EventType.MOUSEOVER       #(dom/setProperties buttons visible))
+    (events/listen div events/EventType.MOUSEOUT        #(dom/setProperties buttons hidden))
+    (events/listen delete-button events/EventType.CLICK #(rm-handler date div))
+    (events/listen edit-button events/EventType.CLICK   #(edit-handler date val-dom))
     (out-insert div)))
 
 ;; TODO redo nice date dedup
