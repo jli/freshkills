@@ -122,9 +122,7 @@
                 (str "/get?laterthan=" latest)
                 "/get")
         k (fn [e]
-            (let [new-posts (-> (.target e)
-                                (. (getResponseText))
-                                reader/read-string)]
+            (let [new-posts (event->clj e)]
               (when-not (empty? new-posts)
                 (let [[[latest _post]] new-posts]
                   (reset! latest-post-date latest)
