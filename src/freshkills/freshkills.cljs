@@ -1,6 +1,7 @@
 (ns freshkills.main
   (:require [goog.dom :as dom]
             [goog.string :as string]
+            [goog.array :as array]
             [goog.net.XhrIo :as Xhr]
             [goog.events.EventType :as EventType]
             [goog.events :as events]
@@ -10,21 +11,15 @@
 
 ;;; utils
 
-;; silly output junk. make it better plz.
+(def hidden (.strobj {"style" "visibility: hidden"}))
+(def visible (.strobj {"style" "visibility: visible"}))
 
 (def html dom/htmlToDocumentFragment)
-(def make-dom dom/createDom)
+(def node dom/createDom)
 
 (defn js-alert [& args]
   (let [msg (apply str args)]
     (js* "alert(~{msg})")))
-
-(defn out-prim
-  ([s elt] (dom/append (dom/getElement elt) s))
-  ([s] (out-prim s "killed")))
-
-(defn out-insert [dom]
-  (dom/insertChildAt (dom/getElement "killed") dom 0))
 
 (defn ms->date [ms]
   (doto (goog.date.DateTime.) (. (setTime ms))))
@@ -38,9 +33,46 @@
        (. (getResponseText))
        reader/read-string))
 
+;; silly output junk. make it better plz.
 
+(defn out-prim
+  ([s elt] (dom/append (dom/getElement elt) s))
+  ([s] (out-prim s "] killed")))
 
-;;; formatting
+(defn out-insert [node]
+  (dom/insertChildAt (dom/getElement "killed") node 0))
+
+;; tags
+
+;; tags start with "#", are at least 1 char, and are surrounded by
+;; whitespace (or at the beginning)
+(defn parse-tags [str]
+  (let [tags (into #{} (.match str (js* "/(^|\\s)#[^\\s]+/g")))]
+    (if (empty? tags)
+      #{"nocat"}
+      tags)))
+
+(defn tag->section-id [tag]
+  (str "tagid-" (.replace tag (js* "/[^a-zA-Z0-9]/g") "_")))
+
+;; classes can't begin with digit
+(defn date->post-class [date] (str "c" date))
+
+;; FIXME insert sorted
+(defn tag-insert [tag node]
+  ;; 0th is header
+  (dom/insertChildAt (dom/getElement (tag->section-id tag)) node 1))
+
+(defn ensure-tag-section [tag]
+  (let [tag-id (tag->section-id tag)]
+    (or (dom/getElement tag-id)
+        (let [section (node "div" (.strobj {"id" tag-id "class" tag-id} )
+                            (node "h3" nil tag))]
+          ;; FIXME insert sorted
+          (out-insert section)
+          section))))
+
+;; formatting
 
 (defn linkify [s]
   (.replace s (js* "/([a-z]+:\\/\\/\\S+)/ig") "<a href=\"$1\">$1</a>"))
@@ -58,27 +90,30 @@
 
 ;;; real stuff
 
-(def hidden (.strobj {"style" "visibility: hidden"}))
-(def visible (.strobj {"style" "visibility: visible"}))
+(def tag-set (atom #{}))
 
-(defn replace-dom! [dom-atom new-dom]
-  (let [old-dom @dom-atom]
-    (reset! dom-atom new-dom)
-    (dom/replaceNode new-dom old-dom)))
+(defn replace-node! [node-atom new-node]
+  (let [old-node @node-atom]
+    (reset! node-atom new-node)
+    (dom/replaceNode new-node old-node)))
 
 ;; FIXME probably leaks, right?
-(defn rm-handler [date post-div]
+(defn rm-handler [date]
   (Xhr/send (str "/rm?id=" date)
             (fn [e] (if (true? (event->clj e))
-                      (dom/removeNode post-div)
+                      (let [ns (array/toArray (dom/getElementsByTagNameAndClass
+                                               "div"
+                                               (date->post-class date)))]
+                        (doseq [n ns] (dom/removeNode n)))
                       (js-alert "failed to remove!")))))
 
 ;; FIXME form appears on separate line
-(defn edit-handler [date val-dom]
+;; FIXME handle new tagging stuff. just remove and insert?
+(defn edit-handler [date val-node]
   (let [;; when xhr returns, set new post value
         submit-k (fn [e new-val]
                    (if (true? (event->clj e))
-                     (replace-dom! val-dom (make-dom "span" nil (render-post new-val)))
+                     (replace-node! val-node (node "span" nil (render-post new-val)))
                      (js-alert "failed to edit!")))
         ;; wire up form to send xhr
         submit-edit (fn [input]
@@ -87,31 +122,32 @@
                                   (map->uri-opts {:id date :txt new}))
                         ;; stop form submit
                         false))]
-    (let [val (dom/getTextContent @val-dom)
-          input (make-dom "input" (.strobj {"type" "textbox" "value" val}))
-          editor (make-dom "form" nil input)]
-      (replace-dom! val-dom editor)
+    (let [val (dom/getTextContent @val-node)
+          input (node "input" (.strobj {"type" "textbox" "value" val}))
+          editor (node "form" nil input)]
+      (replace-node! val-node editor)
       (. input (focus))
       (set! (.onsubmit editor) #(submit-edit input)))))
 
+;; only delete for untagged?
+(defn insert-tagged-post [tag [date val]]
+  (let [tag-section (ensure-tag-section tag)
+        rm-button (node "button" nil "x")
+        edit-button (node "button" nil "edit")
+        buttons (node "span" hidden rm-button edit-button)
+        val-node (atom (node "span" nil (render-post val)))
+        div (node "div" (.strobj {"class" (date->post-class date)})
+                  buttons (render-date date) @val-node)]
+    (events/listen div events/EventType.MOUSEOVER     #(dom/setProperties buttons visible))
+    (events/listen div events/EventType.MOUSEOUT      #(dom/setProperties buttons hidden))
+    (events/listen rm-button events/EventType.CLICK   #(rm-handler date))
+    (events/listen edit-button events/EventType.CLICK #(edit-handler date val-node))
+    (tag-insert tag div)))
 
-;; FIXME only delete for untagged? delete when text blank?
-(defn insert-post-html [[date val]]
-  (let [;; dom stuff
-        delete-button (make-dom "button" nil "x")
-        edit-button (make-dom "button" nil "edit")
-        buttons (make-dom "span" hidden delete-button edit-button)
-        val-dom (atom (make-dom "span" nil (render-post val)))
-        div (make-dom "div" nil buttons (render-date date) @val-dom)]
-    (events/listen div events/EventType.MOUSEOVER       #(dom/setProperties buttons visible))
-    (events/listen div events/EventType.MOUSEOUT        #(dom/setProperties buttons hidden))
-    (events/listen delete-button events/EventType.CLICK #(rm-handler date div))
-    (events/listen edit-button events/EventType.CLICK   #(edit-handler date val-dom))
-    (out-insert div)))
-
-;; TODO redo nice date dedup
-(defn insert-posts-html [posts]
-  (doseq [p posts] (insert-post-html p)))
+(defn insert-posts [posts]
+  (doseq [[_time val :as post] posts
+          tag (parse-tags val)]
+    (insert-tagged-post tag post)))
 
 ;; Date of the latest post on the page.
 ;; Used by load-posts to request only latest posts.
@@ -126,7 +162,7 @@
               (when-not (empty? new-posts)
                 (let [[[latest _post]] new-posts]
                   (reset! latest-post-date latest)
-                  (insert-posts-html (reverse new-posts))))))]
+                  (insert-posts (reverse new-posts))))))]
     (Xhr/send url k)))
 
 (defn ^:export post []
