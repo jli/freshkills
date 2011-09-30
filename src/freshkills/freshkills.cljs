@@ -92,6 +92,12 @@
           (insert-section section tag)
           section))))
 
+(defn maybe-remove-section [tag]
+  (let [tag-id (tag->section-id tag)]
+    (if-let [section (dom/getElement tag-id)]
+      ;; the 1 child is the header with tag name
+      (when (= 1 (count (array/toArray (dom/getChildren section))))
+        (dom/removeNode section)))))
 
 
 
@@ -103,13 +109,15 @@
     (dom/replaceNode new-node old-node)))
 
 ;; FIXME probably leaks, right?
-(defn rm-handler [date]
+(defn rm-handler [date tag]
   (Xhr/send (str "/rm?id=" date)
             (fn [e] (if (true? (event->clj e))
                       (let [ns (array/toArray (dom/getElementsByTagNameAndClass
                                                "div"
                                                (date->post-class date)))]
-                        (doseq [n ns] (dom/removeNode n)))
+                        ;; remove node in all tag sections
+                        (doseq [n ns] (dom/removeNode n))
+                        (maybe-remove-section tag))
                       (js-alert "failed to remove!")))))
 
 ;; FIXME form appears on separate line
@@ -145,7 +153,7 @@
                   buttons (render-date date) @val-node)]
     (events/listen div events/EventType.MOUSEOVER     #(dom/setProperties buttons visible))
     (events/listen div events/EventType.MOUSEOUT      #(dom/setProperties buttons hidden))
-    (events/listen rm-button events/EventType.CLICK   #(rm-handler date))
+    (events/listen rm-button events/EventType.CLICK   #(rm-handler date tag))
     (events/listen edit-button events/EventType.CLICK #(edit-handler date val-node))
     (tag-insert tag div)))
 
