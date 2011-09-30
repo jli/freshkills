@@ -61,8 +61,9 @@
       #{"nocat"}
       tags)))
 
+;; hmm, collapses sections, if using non-standard chars (eg #:) and #:()
 (defn tag->section-id [tag]
-  (str "tagid-" (.replace tag (js* "/[^a-zA-Z0-9]/g") "_")))
+  (str "tagid-" (.replace tag (js* "/[^-a-zA-Z0-9_:.]/g") "_")))
 
 ;; classes can't begin with digit
 (defn date->post-class [date] (str "c" date))
