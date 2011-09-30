@@ -33,7 +33,25 @@
        (. (getResponseText))
        reader/read-string))
 
-;; tags
+
+
+;;; formatting
+
+(defn linkify [s]
+  (.replace s (js* "/([a-z]+:\\/\\/\\S+)/ig") "<a href=\"$1\">$1</a>"))
+
+(defn format-date [ms]
+  (.toIsoString (ms->date ms) true))
+
+(defn render-date [ms]
+  (html (str "<small><small>" (format-date ms) "&gt;</small></small> ")))
+
+(defn render-post [s]
+  (html (linkify (string/htmlEscape s true))))
+
+
+
+;;; tags
 
 ;; tags start with "#", are at least 1 char, and are surrounded by
 ;; whitespace (or at the beginning)
@@ -74,25 +92,10 @@
           (insert-section section tag)
           section))))
 
-;; formatting
-
-(defn linkify [s]
-  (.replace s (js* "/([a-z]+:\\/\\/\\S+)/ig") "<a href=\"$1\">$1</a>"))
-
-(defn format-date [ms]
-  (.toIsoString (ms->date ms) true))
-
-(defn render-date [ms]
-  (html (str "<small><small>" (format-date ms) "&gt;</small></small> ")))
-
-(defn render-post [s]
-  (html (linkify (string/htmlEscape s true))))
 
 
 
 ;;; real stuff
-
-(def tag-set (atom #{}))
 
 (defn replace-node! [node-atom new-node]
   (let [old-node @node-atom]
