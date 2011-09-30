@@ -53,17 +53,24 @@
 
 ;;; tags
 
-;; tags start with "#", are at least 1 char, and are surrounded by
-;; whitespace (or at the beginning)
+(defn valid-id? [s]
+  (.test (js* "/^[-a-zA-Z0-9_:.]+$/") s))
+
+(defn valid-tag? [s]
+  (and (.test #"^#" s)
+       (valid-id? (.replace s #"^#" ""))))
+
+;; tags start with "#", are at least 1 char, and only use valid html
+;; attribute names. only try to parse tags from beginning of post.
 (defn parse-tags [str]
-  (let [tags (into #{} (.match str (js* "/(^|\\s)#[^\\s]+/g")))]
+  (let [words (.split str (js* "/\\s/"))
+        tags (take-while valid-tag? words)]
     (if (empty? tags)
       #{"nocat"}
-      tags)))
+      (set tags))))
 
-;; hmm, collapses sections, if using non-standard chars (eg #:) and #:()
-(defn tag->section-id [tag]
-  (str "tagid-" (.replace tag (js* "/[^-a-zA-Z0-9_:.]/g") "_")))
+;; no need to safeguard - parse-tags only accepts valid chars
+(defn tag->section-id [tag] (str "tagid-" tag))
 
 ;; classes can't begin with digit
 (defn date->post-class [date] (str "c" date))
