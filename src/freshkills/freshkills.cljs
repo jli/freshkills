@@ -75,15 +75,16 @@
         [sib] (filter #(> (dom/getTextContent (.firstChild %)) tag) childs)]
     (if sib
       (dom/insertSiblingBefore node sib)
-      (dom/insertChildAt killed node 0))))
+      (dom/insertChildAt killed node (count childs)))))
 
 (defn tag-insert [tag node]
-  (let [section  (dom/getElement (tag->section-id tag))
-        sibs (array/toArray (dom/getChildren section))
-        [sib] (filter #(> (.class %) (.class node)) sibs)]
+  (let [section (dom/getElement (tag->section-id tag))
+        ;; 1st child is header
+        sibs (rest (array/toArray (dom/getChildren section)))
+        [sib] (filter #(< (.className %) (.className node)) sibs)]
     (if sib
       (dom/insertSiblingBefore node sib)
-      (dom/insertChildAt section node 1)))) ;; 0th position is header
+      (dom/insertChildAt section node (inc (count sibs))))))
 
 (defn ensure-tag-section [tag]
   (let [tag-id (tag->section-id tag)]
