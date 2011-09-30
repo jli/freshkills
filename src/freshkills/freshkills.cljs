@@ -33,15 +33,6 @@
        (. (getResponseText))
        reader/read-string))
 
-;; silly output junk. make it better plz.
-
-(defn out-prim
-  ([s elt] (dom/append (dom/getElement elt) s))
-  ([s] (out-prim s "] killed")))
-
-(defn out-insert [node]
-  (dom/insertChildAt (dom/getElement "killed") node 0))
-
 ;; tags
 
 ;; tags start with "#", are at least 1 char, and are surrounded by
@@ -58,18 +49,29 @@
 ;; classes can't begin with digit
 (defn date->post-class [date] (str "c" date))
 
-;; FIXME insert sorted
+;; want to sort based on full tag name. use the h3 in each section!
+(defn insert-section [node tag]
+  (let [killed (dom/getElement "killed")
+        childs (array/toArray (dom/getChildren killed))
+        [sib] (filter #(> (dom/getTextContent (.firstChild %)) tag) childs)]
+    (if sib
+      (dom/insertSiblingBefore node sib)
+      (dom/insertChildAt killed node 0))))
+
 (defn tag-insert [tag node]
-  ;; 0th is header
-  (dom/insertChildAt (dom/getElement (tag->section-id tag)) node 1))
+  (let [section  (dom/getElement (tag->section-id tag))
+        sibs (array/toArray (dom/getChildren section))
+        [sib] (filter #(> (.class %) (.class node)) sibs)]
+    (if sib
+      (dom/insertSiblingBefore node sib)
+      (dom/insertChildAt section node 1)))) ;; 0th position is header
 
 (defn ensure-tag-section [tag]
   (let [tag-id (tag->section-id tag)]
     (or (dom/getElement tag-id)
-        (let [section (node "div" (.strobj {"id" tag-id "class" tag-id} )
+        (let [section (node "div" (.strobj {"id" tag-id})
                             (node "h3" nil tag))]
-          ;; FIXME insert sorted
-          (out-insert section)
+          (insert-section section tag)
           section))))
 
 ;; formatting
