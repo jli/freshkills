@@ -137,23 +137,25 @@
               (do
                 (remove-post date)
                 (insert-posts [[date new-val]]))))
-        submit (fn [input]
-                 (let [new (.value input)]
-                   (Xhr/send "/edit" #(k % new) "POST" (uri-opts {:id date :txt new}))
-                   ;; stop form submit
-                   false))
-        val (dom/getTextContent val-node)
-        input (node "input" (.strobj {"type" "textbox" "value" val}))
-        editor (node "form" nil input)]
-    (set! (.onsubmit editor) #(submit input))
-    (dom/replaceNode editor val-node)
+        submit (fn [event input]
+                 (when (= 13 (.charCode event)) ; enter
+                   (let [new (.value input)]
+                     (Xhr/send "/edit" #(k % new) "POST" (uri-opts {:id date :txt new}))
+                     ;; stop form submit
+                     false)))
+        unsubmit (fn [event input] (dom/replaceNode val-node input))
+        input (node "input" (.strobj {"type" "textbox"
+                                      "value" (dom/getTextContent val-node)}))]
+    (events/listen input events/EventType.KEYPRESS #(submit % input))
+    (events/listen input events/EventType.BLUR #(unsubmit % input))
+    (dom/replaceNode input val-node)
     (. input (focus))))
 
 ;; only delete for untagged?
 (defn insert-tagged-post [tag [date val]]
   (let [tag-section (ensure-tag-section tag)
         rm-button (node "button" nil "x")
-        edit-button (node "button" nil "edit")
+        edit-button (node "button" nil "w")
         buttons (node "span" hidden rm-button edit-button)
         val-node (node "span" nil (render-post val))
         div (node "div" (.strobj {"class" (date->post-class date)})
