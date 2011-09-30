@@ -24,7 +24,7 @@
 (defn ms->date [ms]
   (doto (goog.date.DateTime.) (. (setTime ms))))
 
-(defn map->uri-opts [m]
+(defn uri-opts [m]
   (let [pairs (map (fn [[k v]] (str (name k) "=" (js/encodeURIComponent v))) m)]
     (apply str (interpose "&" pairs))))
 
@@ -92,55 +92,61 @@
           (insert-section section tag)
           section))))
 
-(defn maybe-remove-section [tag]
+(defn maybe-remove-section [section]
+  ;; the 1 child is the header with tag name
+  (when (= 1 (count (array/toArray (dom/getChildren section))))
+    (dom/removeNode section)))
+
+(defn maybe-remove-tag-section [tag]
   (let [tag-id (tag->section-id tag)]
     (if-let [section (dom/getElement tag-id)]
-      ;; the 1 child is the header with tag name
-      (when (= 1 (count (array/toArray (dom/getChildren section))))
-        (dom/removeNode section)))))
+      (maybe-remove-section section))))
+
+(defn cleanup-sections []
+  (doseq [c (array/toArray (dom/getChildren (dom/getElement "killed")))]
+    (maybe-remove-section c)))
 
 
 
 ;;; real stuff
 
-(defn replace-node! [node-atom new-node]
-  (let [old-node @node-atom]
-    (reset! node-atom new-node)
-    (dom/replaceNode new-node old-node)))
+(defn get-all-posts [date]
+  (array/toArray (dom/getElementsByTagNameAndClass "div" (date->post-class date))))
+
+;; remove post in all tag sections
+(defn remove-post [date]
+  (let [ns (get-all-posts date)]
+    (doseq [n ns] (dom/removeNode n))
+    ;; removal may have left multiple sections empty. inspects all
+    ;; tags. slow blah blah.
+    (cleanup-sections)))
 
 ;; FIXME probably leaks, right?
-(defn rm-handler [date tag]
+(defn rm-handler [date]
   (Xhr/send (str "/rm?id=" date)
             (fn [e] (if (true? (event->clj e))
-                      (let [ns (array/toArray (dom/getElementsByTagNameAndClass
-                                               "div"
-                                               (date->post-class date)))]
-                        ;; remove node in all tag sections
-                        (doseq [n ns] (dom/removeNode n))
-                        (maybe-remove-section tag))
+                      (remove-post date)
                       (js-alert "failed to remove!")))))
 
 ;; FIXME form appears on separate line
-;; FIXME handle new tagging stuff. just remove and insert?
 (defn edit-handler [date val-node]
-  (let [;; when xhr returns, set new post value
-        submit-k (fn [e new-val]
-                   (if (true? (event->clj e))
-                     (replace-node! val-node (node "span" nil (render-post new-val)))
-                     (js-alert "failed to edit!")))
-        ;; wire up form to send xhr
-        submit-edit (fn [input]
-                      (let [new (.value input)]
-                        (Xhr/send "/edit" (fn [e] (submit-k e new)) "POST"
-                                  (map->uri-opts {:id date :txt new}))
-                        ;; stop form submit
-                        false))]
-    (let [val (dom/getTextContent @val-node)
-          input (node "input" (.strobj {"type" "textbox" "value" val}))
-          editor (node "form" nil input)]
-      (replace-node! val-node editor)
-      (. input (focus))
-      (set! (.onsubmit editor) #(submit-edit input)))))
+  (let [k (fn [e new-val]
+            (if-not (true? (event->clj e))
+              (js-alert "failed to edit!")
+              (do
+                (remove-post date)
+                (insert-posts [[date new-val]]))))
+        submit (fn [input]
+                 (let [new (.value input)]
+                   (Xhr/send "/edit" #(k % new) "POST" (uri-opts {:id date :txt new}))
+                   ;; stop form submit
+                   false))
+        val (dom/getTextContent val-node)
+        input (node "input" (.strobj {"type" "textbox" "value" val}))
+        editor (node "form" nil input)]
+    (set! (.onsubmit editor) #(submit input))
+    (dom/replaceNode editor val-node)
+    (. input (focus))))
 
 ;; only delete for untagged?
 (defn insert-tagged-post [tag [date val]]
@@ -148,12 +154,12 @@
         rm-button (node "button" nil "x")
         edit-button (node "button" nil "edit")
         buttons (node "span" hidden rm-button edit-button)
-        val-node (atom (node "span" nil (render-post val)))
+        val-node (node "span" nil (render-post val))
         div (node "div" (.strobj {"class" (date->post-class date)})
-                  buttons (render-date date) @val-node)]
+                  buttons (render-date date) val-node)]
     (events/listen div events/EventType.MOUSEOVER     #(dom/setProperties buttons visible))
     (events/listen div events/EventType.MOUSEOUT      #(dom/setProperties buttons hidden))
-    (events/listen rm-button events/EventType.CLICK   #(rm-handler date tag))
+    (events/listen rm-button events/EventType.CLICK   #(rm-handler date))
     (events/listen edit-button events/EventType.CLICK #(edit-handler date val-node))
     (tag-insert tag div)))
 
@@ -184,7 +190,7 @@
                        (load-posts)
                        (set! (.value (dom/getElement "txt")) ""))]
     (if-not (string/isEmpty txt)
-      (Xhr/send "/post" clear&reload "POST" (map->uri-opts {:txt txt}))
+      (Xhr/send "/post" clear&reload "POST" (uri-opts {:txt txt}))
       (js-alert "only whitespace!"))
     ;; stop form submission
     false))
