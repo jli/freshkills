@@ -53,17 +53,24 @@
 
 ;;; tags
 
-;; tags start with "#", are at least 1 char, and are surrounded by
-;; whitespace (or at the beginning)
+(defn valid-id? [s]
+  (.test (js* "/^[-a-zA-Z0-9_:.]+$/") s))
+
+(defn valid-tag? [s]
+  (and (.test #"^#" s)
+       (valid-id? (.replace s #"^#" ""))))
+
+;; tags start with "#", are at least 1 char, and only use valid html
+;; attribute names. only try to parse tags from beginning of post.
 (defn parse-tags [str]
-  (let [tags (into #{} (.match str (js* "/(^|\\s)#[^\\s]+/g")))]
+  (let [words (.split str (js* "/\\s/"))
+        tags (take-while valid-tag? words)]
     (if (empty? tags)
       #{"nocat"}
-      tags)))
+      (set tags))))
 
-;; hmm, collapses sections, if using non-standard chars (eg #:) and #:()
-(defn tag->section-id [tag]
-  (str "tagid-" (.replace tag (js* "/[^-a-zA-Z0-9_:.]/g") "_")))
+;; no need to safeguard - parse-tags only accepts valid chars
+(defn tag->section-id [tag] (str "tagid-" tag))
 
 ;; classes can't begin with digit
 (defn date->post-class [date] (str "c" date))
@@ -75,15 +82,16 @@
         [sib] (filter #(> (dom/getTextContent (.firstChild %)) tag) childs)]
     (if sib
       (dom/insertSiblingBefore node sib)
-      (dom/insertChildAt killed node 0))))
+      (dom/insertChildAt killed node (count childs)))))
 
 (defn tag-insert [tag node]
-  (let [section  (dom/getElement (tag->section-id tag))
-        sibs (array/toArray (dom/getChildren section))
-        [sib] (filter #(> (.class %) (.class node)) sibs)]
+  (let [section (dom/getElement (tag->section-id tag))
+        ;; 1st child is header
+        sibs (rest (array/toArray (dom/getChildren section)))
+        [sib] (filter #(< (.className %) (.className node)) sibs)]
     (if sib
       (dom/insertSiblingBefore node sib)
-      (dom/insertChildAt section node 1)))) ;; 0th position is header
+      (dom/insertChildAt section node (inc (count sibs))))))
 
 (defn ensure-tag-section [tag]
   (let [tag-id (tag->section-id tag)]
