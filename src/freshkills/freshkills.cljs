@@ -11,9 +11,6 @@
 
 ;;; utils
 
-(def hidden (.strobj {"style" "visibility: hidden"}))
-(def visible (.strobj {"style" "visibility: visible"}))
-
 (def html dom/htmlToDocumentFragment)
 (def node dom/createDom)
 
@@ -75,7 +72,7 @@
 ;; classes can't begin with digit
 (defn date->post-class [date] (str "c" date))
 
-;; want to sort based on full tag name. use the h3 in each section!
+;; want to sort based on full tag name. use the h2 in each section!
 (defn insert-section [node tag]
   (let [killed (dom/getElement "killed")
         childs (array/toArray (dom/getChildren killed))
@@ -97,7 +94,7 @@
   (let [tag-id (tag->section-id tag)]
     (or (dom/getElement tag-id)
         (let [section (node "div" (.strobj {"id" tag-id})
-                            (node "h3" nil tag))]
+                            (node "h2" nil tag))]
           (insert-section section tag)
           section))))
 
@@ -137,7 +134,6 @@
                       (remove-post date)
                       (js-alert "failed to remove!")))))
 
-;; FIXME form appears on separate line
 (defn edit-handler [date val-node]
   (let [k (fn [e new-val]
             (if-not (true? (event->clj e))
@@ -153,7 +149,9 @@
                      false)))
         unsubmit (fn [event input] (dom/replaceNode val-node input))
         input (node "input" (.strobj {"type" "textbox"
-                                      "value" (dom/getTextContent val-node)}))]
+                                      "value" (dom/getTextContent val-node)
+                                      ;; hm, doesn't work :/
+                                      "style" "{width: 100%;}"}))]
     (events/listen input events/EventType.KEYPRESS #(submit % input))
     (events/listen input events/EventType.BLUR #(unsubmit % input))
     (dom/replaceNode input val-node)
@@ -162,16 +160,15 @@
 ;; only delete for untagged?
 (defn insert-tagged-post [tag [date val]]
   (let [tag-section (ensure-tag-section tag)
-        rm-button (node "button" nil "x")
-        edit-button (node "button" nil "w")
-        buttons (node "span" hidden rm-button edit-button)
+        edit-class (.strobj {"class" "edit"})
+        rm (node "a" edit-class "rm")
+        edit (node "a" edit-class "edit")
+        links (node "span" nil rm " " edit)
         val-node (node "span" nil (render-post val))
         div (node "div" (.strobj {"class" (date->post-class date)})
-                  buttons (render-date date) val-node)]
-    (events/listen div events/EventType.MOUSEOVER     #(dom/setProperties buttons visible))
-    (events/listen div events/EventType.MOUSEOUT      #(dom/setProperties buttons hidden))
-    (events/listen rm-button events/EventType.CLICK   #(rm-handler date))
-    (events/listen edit-button events/EventType.CLICK #(edit-handler date val-node))
+                  links " " (render-date date) val-node)]
+    (events/listen rm events/EventType.CLICK      #(rm-handler date))
+    (events/listen edit events/EventType.CLICK    #(edit-handler date val-node))
     (tag-insert tag div)))
 
 (defn insert-posts [posts]

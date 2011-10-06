@@ -2,6 +2,9 @@
 <style>
 #foot {
   font-size: xx-small;
+  position: fixed;
+  bottom: 1em;
+  right: 1em;
 }
 #logo {
   width: 250px; height: 409px;
@@ -9,17 +12,19 @@
   position: fixed; right:0px; top:0px;
   z-index: -100000000;
 }
+h1 { float: right; }
+a.edit { cursor: pointer; color: #ccc; }
+a.edit:hover { color: #333; }
 </style></head><body>
 
 <h1>F R E S H K I L L S</h1>
 <div id="logo"></div>
 
 <form action="dummy" id="form" method="get">
-<textarea id="txt" style="width: 60%;"></textarea><br>
+<textarea id="txt" style="{width: 60%}"></textarea><br>
 <input type="submit" id="submit" value="kill"></input>
 </form>
 
-<h2>killed</h2>
 <div id="killed"></div>
 
 <p>&nbsp;<p>
