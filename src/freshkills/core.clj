@@ -39,7 +39,6 @@
                       (recur)))))
 
 (defn auth? [user pass]
-  (println "auth attempt:" user pass)
   (let [users @users]
     (or (empty? users) ; no users configured -> no auth
         ;; not same as (= pass (allowed-users user)). tries user, pass
@@ -61,8 +60,9 @@
     [[jetty-port j "jetty port" "8080"]
      [no-swank? "don't start swank server" false]
      [swank-port s "swank port" "8081"]
-     [user-file u "user file" "users.dat"]]
+     [user-file u "user file" "users.dat"]
+     [user-update t "user file update wait time (ms)" "60000"]]
     (when (not no-swank?)
       (swank.swank/start-server :port (Integer/parseInt swank-port)))
-    (refresh-users-loop user-file 30000)
+    (refresh-users-loop user-file (Integer/parseInt user-update))
     (run-jetty #'app {:port (Integer/parseInt jetty-port)})))
