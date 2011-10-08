@@ -83,7 +83,11 @@
   (let [killed (dom/getElement "killed")
         childs (array/toArray (dom/getChildren killed))
         ;; nocat always top
-        greater (fn [t1 t2] (if (= "nocat" t1) false (> t1 t2)))
+        greater (fn [t1 t2]
+                  (cond
+                   (= "nocat" t1) false
+                   (= "nocat" t2) true
+                   :default (> t1 t2)))
         [sib] (filter #(greater (dom/getTextContent (.firstChild %)) tag) childs)]
     (if sib
       (dom/insertSiblingBefore node sib)
