@@ -23,20 +23,28 @@
   (resources "/")
   (ANY "*" [] (file-response "resources/public/index.html")))
 
-;; defonce to avoid rereading
-(defonce allowed-users
-  (try (let [res (read-string (slurp "users.dat"))]
-         (println "users:" res)
-         res)
-       (catch Exception e
-         (println "error while reading users.dat auth file. no auth!" e))))
+(defonce users (atom {}))
+
+(defn update-users [file]
+  (try (let [res (read-string (slurp file))]
+         (when-not (= res @users)
+           (println "users updated:" res)
+           (reset! users res)))
+       (catch Exception e (println "error while reading" file e))))
+
+(defn refresh-users-loop [file wait]
+  (.start (Thread. #(loop []
+                      (update-users file)
+                      (Thread/sleep wait)
+                      (recur)))))
 
 (defn auth? [user pass]
-  ;; (println "auth attempt:" user pass)
-  (or (empty? allowed-users) ;; no users configured -> no auth not
-      ;; equivalent to (= pass (allowed-users user)). tries user, pass
-      ;; "nil, nil" first, which would be true!
-      (= pass (allowed-users user :not-in-list-so-fail))))
+  (println "auth attempt:" user pass)
+  (let [users @users]
+    (or (empty? users) ; no users configured -> no auth
+        ;; not same as (= pass (allowed-users user)). tries user, pass
+        ;; "nil, nil" first, which would be true!
+        (= pass (users user :not-in-list-so-fail)))))
 
 (def app
      (-> base
@@ -52,7 +60,9 @@
     "FRESHKILLS INC....................."
     [[jetty-port j "jetty port" "8080"]
      [no-swank? "don't start swank server" false]
-     [swank-port s "swank port" "8081"]]
+     [swank-port s "swank port" "8081"]
+     [user-file u "user file" "users.dat"]]
     (when (not no-swank?)
       (swank.swank/start-server :port (Integer/parseInt swank-port)))
+    (refresh-users-loop user-file 30000)
     (run-jetty #'app {:port (Integer/parseInt jetty-port)})))
