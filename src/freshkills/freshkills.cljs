@@ -146,17 +146,16 @@
   (let [k (fn [e new-val]
             (if-not (true? (event->clj e))
               (js-alert "failed to edit!")
-              (do
-                (remove-post date)
-                (insert-posts [[date new-val]]))))
+              (do (remove-post date)
+                  (insert-posts [[date new-val]]))))
         submit (fn [event input]
                  (when (= 13 (.charCode event)) ; enter
                    (let [new (.value input)]
                      (Xhr/send "/edit" #(k % new) "POST" (uri-opts {:id date :txt new})))))
-        unsubmit (fn [event input] (dom/replaceNode val-node input))
+        unsubmit (fn [_event input] (dom/replaceNode val-node input))
         input (node "input" (.strobj {"type" "text"
                                       "value" (.rawtext val-node)
-                                      "size" "40"}))]
+                                      "style" "width: 50%"}))]
     (events/listen input events/EventType.KEYPRESS #(submit % input))
     (events/listen input events/EventType.BLUR #(unsubmit % input))
     (dom/replaceNode input val-node)
