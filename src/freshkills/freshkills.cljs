@@ -43,8 +43,15 @@
 (defn render-date [ms]
   (html (str "<small><small>" (format-date ms) "</small></small> ")))
 
-(defn render-post [s]
-  (html (linkify (string/htmlEscape s true))))
+(defn render-post [tag s]
+  (let [s (string/htmlEscape s true)
+        ;; not great. usually right. extra whitespace matching to try
+        ;; to avoid destroying links.
+        tagged (if (= "nocat" tag)
+                 s
+                 (.replace s (js/RegExp (str "(^|\\s)(" tag ")(\\s)") "g")
+                           "$1<span class='tag'>$2</span>$3"))]
+    (html (linkify tagged))))
 
 
 
@@ -62,9 +69,7 @@
 (defn parse-tags [str]
   (let [words (.split str (js* "/\\s/"))
         tags (take-while valid-tag? words)]
-    (if (empty? tags)
-      #{"nocat"}
-      (set tags))))
+    tags))
 
 ;; no need to safeguard - parse-tags only accepts valid chars
 (defn tag->section-id [tag] (str "tagid-" tag))
@@ -164,7 +169,7 @@
         edit-class (.strobj {"class" "edit" "href" "#"})
         rm (node "a" edit-class "rm")
         edit (node "a" edit-class "ed")
-        val-node (node "span" nil (render-post val))
+        val-node (node "span" nil (render-post tag val))
         div (node "div" (.strobj {"class" (date->post-class date)})
                   rm " " edit  " " (render-date date) val-node)]
     (events/listen rm events/EventType.CLICK      #(rm-handler date))
@@ -173,7 +178,8 @@
 
 (defn insert-posts [posts]
   (doseq [[_time val :as post] posts
-          tag (parse-tags val)]
+          tag (let [ts (parse-tags val)]
+                (if (empty? ts) #{"nocat"} (set ts)))]
     (insert-tagged-post tag post)))
 
 ;; Date of the latest post on the page.
