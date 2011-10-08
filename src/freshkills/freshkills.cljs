@@ -41,7 +41,7 @@
   (.toIsoString (ms->date ms) true))
 
 (defn render-date [ms]
-  (html (str "<small><small>" (format-date ms) "&gt;</small></small> ")))
+  (html (str "<small><small>" (format-date ms) "</small></small> ")))
 
 (defn render-post [s]
   (html (linkify (string/htmlEscape s true))))
@@ -162,7 +162,7 @@
   (let [tag-section (ensure-tag-section tag)
         edit-class (.strobj {"class" "edit" "href" "#"})
         rm (node "a" edit-class "rm")
-        edit (node "a" edit-class "edit")
+        edit (node "a" edit-class "ed")
         links (node "span" nil rm " " edit)
         val-node (node "span" nil (render-post val))
         div (node "div" (.strobj {"class" (date->post-class date)})
