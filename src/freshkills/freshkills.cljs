@@ -44,15 +44,12 @@
   (html (str "<small><small>" (format-date ms) "</small></small> ")))
 
 (defn render-post [tag s]
-  (let [s (string/htmlEscape s true)
-        ;; not great. usually right. extra whitespace matching to try
-        ;; to avoid destroying links. doesn't work with repeated tags,
-        ;; not sure how to use non-capturing
-        tagged (if (= "nocat" tag)
-                 s
-                 (.replace s (js/RegExp (str "(^|\\s)(" tag ")(\\s)") "g")
-                           "$1<span class='tag'>$2</span>$3"))]
-    (html (linkify tagged))))
+  ;; not great. usually right. extra whitespace matching to try to
+  ;; avoid destroying links. doesn't work with repeated tags, not sure
+  ;; how to use non-capturing
+  (let [spanify-tag #(.replace % (js/RegExp (str "(^|\\s)(" tag ")(\\s)") "g")
+                               "$1<span class='tag'>$2</span>$3")]
+    (-> s string/htmlEscape spanify-tag linkify html)))
 
 
 
