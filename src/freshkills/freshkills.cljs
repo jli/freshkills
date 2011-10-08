@@ -164,10 +164,9 @@
         edit-class (.strobj {"class" "edit" "href" "#"})
         rm (node "a" edit-class "rm")
         edit (node "a" edit-class "ed")
-        links (node "span" nil rm " " edit)
         val-node (node "span" nil (render-post val))
         div (node "div" (.strobj {"class" (date->post-class date)})
-                  links " " (render-date date) val-node)]
+                  rm " " edit  " " (render-date date) val-node)]
     (events/listen rm events/EventType.CLICK      #(rm-handler date))
     (events/listen edit events/EventType.CLICK    #(edit-handler date val-node))
     (tag-insert tag div)))
