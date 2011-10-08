@@ -76,7 +76,9 @@
 (defn insert-section [node tag]
   (let [killed (dom/getElement "killed")
         childs (array/toArray (dom/getChildren killed))
-        [sib] (filter #(> (dom/getTextContent (.firstChild %)) tag) childs)]
+        ;; nocat always top
+        greater (fn [t1 t2] (if (= "nocat" t1) false (> t1 t2)))
+        [sib] (filter #(greater (dom/getTextContent (.firstChild %)) tag) childs)]
     (if sib
       (dom/insertSiblingBefore node sib)
       (dom/insertChildAt killed node (count childs)))))
