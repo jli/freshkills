@@ -1,12 +1,6 @@
 # freshkills
 
-Dumping grounds.
-
-## Todo
-
-* Limit loading, with option to dynamically load more.
-* Rate-limiting, limits, safety.
-* Files.
+Dumping grounds. /Or/, edgy "social" bookmarking. /Or/, del.icio.us but dis.gusti.ng.
 
 ## License
 

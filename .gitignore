@@ -3,4 +3,5 @@ pom.xml
 lib
 classes
 db.dat
+users.dat
 *.js
