@@ -160,7 +160,7 @@
 ;; only delete for untagged?
 (defn insert-tagged-post [tag [date val]]
   (let [tag-section (ensure-tag-section tag)
-        edit-class (.strobj {"class" "edit"})
+        edit-class (.strobj {"class" "edit" "href" "#"})
         rm (node "a" edit-class "rm")
         edit (node "a" edit-class "edit")
         links (node "span" nil rm " " edit)
