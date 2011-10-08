@@ -25,7 +25,7 @@ h2 { font-size: small; }
   z-index: -1;
 }
 span.tag { font-size: x-small; font-style: italic; }
-#txt { float: left; }
+#txt { width: 100% }
 a.edit { cursor: pointer; color: #ccc; text-decoration: none; }
 a.edit:hover { color: #333; }
 </style></head><body>
@@ -34,8 +34,7 @@ a.edit:hover { color: #333; }
 <div id="logo"></div>
 
 <form action="dummy" id="form" method="get">
-<textarea id="txt" style="{width: 80%}"></textarea><br>
-<input type="submit" id="submit" value="kill"></input>
+<input type="text" id="txt"></input>
 </form>
 
 <div id="killed"></div>
