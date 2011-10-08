@@ -169,7 +169,7 @@
         edit-class (.strobj {"class" "edit" "href" "#"})
         rm (node "a" edit-class "rm")
         edit (node "a" edit-class "ed")
-        val-node (node "span" nil (render-post tag val))
+        val-node (node "span" (.strobj {"class" "killtxt"}) (render-post tag val))
         div (node "div" (.strobj {"class" (date->post-class date)})
                   rm " " edit  " " (render-date date) val-node)]
     ;; used for editing original text
