@@ -1,18 +1,29 @@
-<html><head><title>FRESHKILLS</title>
+<html><head><title>freshkills</title>
 <style>
+h1 {
+  position: fixed; bottom: 5.5em; right: -5em;
+  transform: rotate(-90deg);
+  -webkit-transform: rotate(-90deg);
+  -moz-transform: rotate(-90deg);
+  -ms-transform: rotate(-90deg);
+  -o-transform: rotate(-90deg);
+  font-size: small;
+  font-family: courier, monospace;
+}
 #foot {
+  position: fixed; bottom: 0; right: 0;
   font-size: xx-small;
-  position: fixed;
-  bottom: 1em;
-  right: 1em;
+  z-index: -1;
 }
 #logo {
   width: 250px; height: 409px;
   background: url(horseshoe.png);
-  position: fixed; right:0px; top:0px;
-  z-index: -100000000;
+  position: fixed; bottom: 0; right: 0;
+  float: right;
+  opacity: 0.2;
+  z-index: -1;
 }
-h1 { float: right; }
+#txt { float: left; }
 a.edit { cursor: pointer; color: #ccc; }
 a.edit:hover { color: #333; }
 </style></head><body>
@@ -21,7 +32,7 @@ a.edit:hover { color: #333; }
 <div id="logo"></div>
 
 <form action="dummy" id="form" method="get">
-<textarea id="txt" style="{width: 60%}"></textarea><br>
+<textarea id="txt" style="{width: 80%}"></textarea><br>
 <input type="submit" id="submit" value="kill"></input>
 </form>
 
