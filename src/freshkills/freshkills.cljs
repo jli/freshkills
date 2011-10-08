@@ -148,10 +148,9 @@
                      ;; stop form submit
                      false)))
         unsubmit (fn [event input] (dom/replaceNode val-node input))
-        input (node "input" (.strobj {"type" "textbox"
+        input (node "input" (.strobj {"type" "text"
                                       "value" (dom/getTextContent val-node)
-                                      ;; hm, doesn't work :/
-                                      "style" "{width: 100%;}"}))]
+                                      "size" "40"}))]
     (events/listen input events/EventType.KEYPRESS #(submit % input))
     (events/listen input events/EventType.BLUR #(unsubmit % input))
     (dom/replaceNode input val-node)
