@@ -46,7 +46,8 @@
 (defn render-post [tag s]
   (let [s (string/htmlEscape s true)
         ;; not great. usually right. extra whitespace matching to try
-        ;; to avoid destroying links.
+        ;; to avoid destroying links. doesn't work with repeated tags,
+        ;; not sure how to use non-capturing
         tagged (if (= "nocat" tag)
                  s
                  (.replace s (js/RegExp (str "(^|\\s)(" tag ")(\\s)") "g")
@@ -151,12 +152,10 @@
         submit (fn [event input]
                  (when (= 13 (.charCode event)) ; enter
                    (let [new (.value input)]
-                     (Xhr/send "/edit" #(k % new) "POST" (uri-opts {:id date :txt new}))
-                     ;; stop form submit
-                     false)))
+                     (Xhr/send "/edit" #(k % new) "POST" (uri-opts {:id date :txt new})))))
         unsubmit (fn [event input] (dom/replaceNode val-node input))
         input (node "input" (.strobj {"type" "text"
-                                      "value" (dom/getTextContent val-node)
+                                      "value" (.rawtext val-node)
                                       "size" "40"}))]
     (events/listen input events/EventType.KEYPRESS #(submit % input))
     (events/listen input events/EventType.BLUR #(unsubmit % input))
@@ -164,6 +163,7 @@
     (. input (focus))))
 
 ;; only delete for untagged?
+;; todo prevent rm/edit clicks from changing URL?
 (defn insert-tagged-post [tag [date val]]
   (let [tag-section (ensure-tag-section tag)
         edit-class (.strobj {"class" "edit" "href" "#"})
@@ -172,8 +172,10 @@
         val-node (node "span" nil (render-post tag val))
         div (node "div" (.strobj {"class" (date->post-class date)})
                   rm " " edit  " " (render-date date) val-node)]
-    (events/listen rm events/EventType.CLICK      #(rm-handler date))
-    (events/listen edit events/EventType.CLICK    #(edit-handler date val-node))
+    ;; used for editing original text
+    (set! (.rawtext val-node) val)
+    (events/listen rm events/EventType.CLICK #(rm-handler date))
+    (events/listen edit events/EventType.CLICK #(edit-handler date val-node))
     (tag-insert tag div)))
 
 (defn insert-posts [posts]
